@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yookassa-telegram-integration"
+version = "1.0.0"
+description = "By @rerowros"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "rerowros", email = "rerowros@gmail.com"}
+]
+keywords = ["yookassa", "telegram", "bot", "payment", "aiogram"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "aiogram>=3.0.0",
+    "aiohttp>=3.8.0",
+    "yookassa>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Rerowros/yookassa-telegram-integration"
+Documentation = "https://github.com/Rerowros/yookassa-telegram-integration#readme"
+Repository = "https://github.com/Rerowros/yookassa-telegram-integration"
+Issues = "https://github.com/Rerowros/yookassa-telegram-integration/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+yookassa_telegram_integration = ["py.typed"]
