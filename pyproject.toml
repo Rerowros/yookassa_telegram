@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yookassa-telegram"
-version = "1.0.1"
+version = "1.0.2"
 description = "By @rerowros"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -48,4 +48,4 @@ Issues = "https://github.com/Rerowros/yookassa-telegram/issues"
 where = ["."]
 
 [tool.setuptools.package-data]
-yookassa_telegram_integration = ["py.typed"]
+yookassa_telegram = ["py.typed"]
