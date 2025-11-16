@@ -34,7 +34,7 @@ from .storage import PaymentStorage, InMemoryPaymentStorage, JSONFilePaymentStor
 from .database_storage import DatabasePaymentStorage
 from .payment_expiration import start_payment_expiration_checker, OrderDatabaseProtocol, OrderManagerProtocol
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __all__ = [
     # Config
     "YooKassaConfig",
