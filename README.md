@@ -17,6 +17,8 @@
 
 ---
 
+## Документация описана в [API.md](API.md).
+
 ## Установка
 
 Установите с PyPI:
@@ -34,6 +36,7 @@ pip install yookassa-telegram
 Зависимости перечислены в `pyproject.toml`.
 
 ---
+
 
 ## Быстрый старт
 
@@ -141,24 +144,11 @@ handler = create_webhook_handler(
 - `InMemoryPaymentStorage` — для разработки и тестов
 - `JSONFilePaymentStorage` — для простого прототипирования
 
-Для production рекомендуется реализовать свой `PaymentStorage` на основе СУБД (Postgres, SQLite) или Redis.
+Для production рекомендуется реализовать свой `PaymentStorage`
 
 ---
 
-## API (кратко)
-
-- `TelegramPaymentIntegration` — основные методы для создания платежей и отправки сообщений в Telegram.
-- `PaymentService` — логика создания, подтверждения и отмены платежей.
-- `YooKassaClient` — клиент-обёртка вокруг официального SDK с retry-логикой.
-- `WebhookHandler` — обработчик webhook уведомлений и callback-ы.
-- `YooKassaConfig` — конфигурация для API Клиента и сервисов.
-- модели: `CustomerInfo`, `PaymentData`, `ReceiptData`, `PaymentItem`.
-
-Подробная документация и примеры использования — в исходниках и docstrings.
-
----
-
-## Примеры (расширенно)
+## Примеры
 
 Подтверждение платежа:
 
@@ -188,36 +178,9 @@ await refund_service.create_refund(
 )
 ```
 
-## Разработка и тесты
-
-Установите dev-зависимости и выполните тесты:
-
-```bash
-pip install -e .[dev]
-pytest
-```
----
-
-## Публикация на PyPI
-
-Создайте билды и опубликуйте пакет с помощью `build` и `twine`:
-
-```bash
-python -m build
-twine upload dist/*
-```
-
-Для предварительной проверки можно загрузить пакет в TestPyPI:
-
-```bash
-twine upload --repository testpypi dist/*
-```
-
----
-
 ## Contributing
 
-PR и issue приветствуются. Пожалуйста, используйте ветку `main` как основу и следуйте CONTRIBUTING.md (если есть).
+PR и issue приветствуются. Пожалуйста, используйте ветку `main` как основу
 
 Перед PR выполните:
 
@@ -226,12 +189,6 @@ black .
 mypy .
 pytest
 ```
-
----
-
-## Лицензия
-
-Проект распространяется под лицензией MIT. Подробнее в `LICENSE`.
 
 ---
 
