@@ -3,9 +3,8 @@
 """
 
 import logging
-from typing import Optional, Protocol, Any
+from typing import Optional, Protocol, Any, Callable, Awaitable
 from aiogram import Bot
-from aiogram.utils import markdown as md
 
 from .models import WebhookNotification
 from .enums import PaymentStatus
@@ -41,9 +40,19 @@ class OrderManagerProtocol(Protocol):
 logger = logging.getLogger(__name__)
 
 
+# Типы для callback-функций
+NotifyUserSuccessCallback = Callable[[Bot, int, int, str], Awaitable[None]]
+NotifyUserCanceledCallback = Callable[[Bot, int, Optional[int]], Awaitable[None]]
+NotifyAdminsNewOrderCallback = Callable[[Bot, list[int], Any, WebhookNotification], Awaitable[None]]
+NotifyAdminsErrorCallback = Callable[[Bot, list[int], Any, str], Awaitable[None]]
+
+
 class WebhookOrderIntegration:
     """
     Обработка webhook уведомлений с интеграцией в систему заказов
+    
+    Пакет больше не содержит hardcoded логику уведомлений.
+    Все уведомления передаются через callback-функции из вашего проекта.
     """
     
     def __init__(
@@ -51,7 +60,11 @@ class WebhookOrderIntegration:
         bot: Bot,
         orders_database: OrderDatabaseProtocol,
         orders_manager: OrderManagerProtocol,
-        admin_user_ids: list[int]
+        admin_user_ids: list[int],
+        notify_user_success: Optional[NotifyUserSuccessCallback] = None,
+        notify_user_canceled: Optional[NotifyUserCanceledCallback] = None,
+        notify_admins_new_order: Optional[NotifyAdminsNewOrderCallback] = None,
+        notify_admins_error: Optional[NotifyAdminsErrorCallback] = None,
     ):
         """
         Args:
@@ -59,11 +72,21 @@ class WebhookOrderIntegration:
             orders_database: База данных заказов (должна реализовывать OrderDatabaseProtocol)
             orders_manager: Менеджер заказов (должен реализовывать OrderManagerProtocol)
             admin_user_ids: Список ID администраторов для уведомлений
+            notify_user_success: Callback для уведомления пользователя об успешной оплате
+            notify_user_canceled: Callback для уведомления пользователя об отмене платежа
+            notify_admins_new_order: Callback для уведомления админов о новом заказе
+            notify_admins_error: Callback для уведомления админов об ошибке
         """
         self.bot = bot
         self.orders_database = orders_database
         self.orders_manager = orders_manager
         self.admin_user_ids = admin_user_ids
+        
+        # Callback-функции для уведомлений (опциональны)
+        self.notify_user_success = notify_user_success
+        self.notify_user_canceled = notify_user_canceled
+        self.notify_admins_new_order = notify_admins_new_order
+        self.notify_admins_error = notify_admins_error
     
     async def handle_payment_succeeded(self, notification: WebhookNotification):
         """
@@ -114,7 +137,7 @@ class WebhookOrderIntegration:
             except Exception as e:
                 logger.error(f"Error converting cart to order: {e}", exc_info=True)
                 # Уведомляем админов об ошибке
-                await self._notify_admins_error(order, str(e))
+                await self._handle_conversion_error(order, str(e))
                 return
         
         # Помечаем заказ как оплаченный
@@ -132,27 +155,35 @@ class WebhookOrderIntegration:
             except Exception as e:
                 logger.warning(f"Failed to delete payment message: {e}")
         
-        # Отправляем уведомление пользователю
-        if user_id:
+        # Отправляем уведомление пользователю через callback
+        if user_id and self.notify_user_success:
             try:
-                await self.bot.send_message(
-                    chat_id=int(user_id),
-                    text=f"✅ Оплата получена!\n\n"
-                         f"Заказ №{order_number} успешно оплачен.\n"
-                         f"Товар будет отправлен в течение двух недель.\n\n"
-                         f"Спасибо за покупку!"
+                await self.notify_user_success(
+                    self.bot,
+                    int(user_id),
+                    order_number_int,
+                    notification.payment_id
                 )
             except Exception as e:
                 logger.error(f"Failed to notify user: {e}")
         
-        # Уведомляем администраторов о новом заказе
-        await self._notify_admins_new_order(order, notification)
+        # Уведомляем администраторов о новом заказе через callback
+        if self.notify_admins_new_order:
+            try:
+                await self.notify_admins_new_order(
+                    self.bot,
+                    self.admin_user_ids,
+                    order,
+                    notification
+                )
+            except Exception as e:
+                logger.error(f"Failed to notify admins: {e}")
     
     async def handle_payment_canceled(self, notification: WebhookNotification):
         """
         Обработка отмененного платежа
         
-        - Уведомляет пользователя об отмене
+        - Уведомляет пользователя об отмене через callback
         - Логирует событие
         """
         logger.info(f"Processing canceled payment: {notification.payment_id}")
@@ -160,13 +191,13 @@ class WebhookOrderIntegration:
         user_id = notification.metadata.get('user_id')
         order_number = notification.metadata.get('order_number')
         
-        if user_id:
+        if user_id and self.notify_user_canceled:
             try:
-                await self.bot.send_message(
-                    chat_id=int(user_id),
-                    text=f"❌ Платеж отменен\n\n"
-                         f"Заказ №{order_number or 'N/A'} не был оплачен.\n"
-                         f"Вы можете попробовать оформить заказ снова."
+                order_number_int = int(order_number) if order_number else None
+                await self.notify_user_canceled(
+                    self.bot,
+                    int(user_id),
+                    order_number_int
                 )
             except Exception as e:
                 logger.error(f"Failed to notify user about cancellation: {e}")
@@ -182,67 +213,18 @@ class WebhookOrderIntegration:
         # Здесь можно добавить логику автоматического подтверждения
         # или уведомления админов о необходимости подтверждения
     
-    async def _notify_admins_new_order(
-        self,
-        order,
-        notification: WebhookNotification
-    ):
-        """Отправка уведомлений администраторам о новом оплаченном заказе"""
+    async def _handle_conversion_error(self, order, error_message: str):
+        """Обработка ошибки при конвертации корзины в заказ"""
+        logger.error(f"Error converting cart to order: {error_message}", exc_info=True)
         
-        # Получаем текст заказа
-        try:
-            order_text = self.orders_manager.get_order_as_text(order.order_id)
-        except Exception as e:
-            logger.error(f"Error getting order text: {e}")
-            order_text = f"Заказ #{order.order_number}"
-        
-        order_address = order.order_address or "Адрес не указан"
-        
-        # Получаем username пользователя (если доступен)
-        username = notification.metadata.get('username', 'неизвестен')
-        
-        message_text = f"""🎉 Новый заказ #{md.hbold(str(order.order_number))} (оплачен через ЮKassa)
-
-👤 От пользователя: @{username} (ID {order.user_id})
-
-{order_text}
-
-📍 Данные: {order_address}
-
-💳 Payment ID: {md.hcode(notification.payment_id)}
-💰 Сумма: {notification.amount} {notification.currency.value}
-
-✅ Заказ автоматически подтвержден. Требуется отправка."""
-        
-        # Отправляем уведомление каждому админу
-        for admin_id in self.admin_user_ids:
+        # Уведомляем админов об ошибке через callback
+        if self.notify_admins_error:
             try:
-                await self.bot.send_message(
-                    chat_id=admin_id,
-                    text=message_text,
-                    parse_mode="HTML"
-                )
-                logger.info(f"Notified admin {admin_id} about order #{order.order_number}")
-            except Exception as e:
-                logger.error(f"Failed to notify admin {admin_id}: {e}")
-    
-    async def _notify_admins_error(self, order, error_message: str):
-        """Уведомление админов об ошибке при обработке платежа"""
-        
-        message_text = f"""⚠️ ОШИБКА при обработке платежа
-
-Заказ #{order.order_number}
-Пользователь ID: {order.user_id}
-
-Ошибка: {error_message}
-
-Требуется ручная проверка!"""
-        
-        for admin_id in self.admin_user_ids:
-            try:
-                await self.bot.send_message(
-                    chat_id=admin_id,
-                    text=message_text
+                await self.notify_admins_error(
+                    self.bot,
+                    self.admin_user_ids,
+                    order,
+                    error_message
                 )
             except Exception as e:
-                logger.error(f"Failed to notify admin {admin_id} about error: {e}")
+                logger.error(f"Failed to notify admins about error: {e}")
