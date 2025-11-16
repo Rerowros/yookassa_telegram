@@ -31,7 +31,7 @@ from .yookassa_client import YooKassaClient
 from .storage import PaymentStorage, InMemoryPaymentStorage, JSONFilePaymentStorage
 from .database_storage import DatabasePaymentStorage
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 __all__ = [
     # Config
     "YooKassaConfig",
