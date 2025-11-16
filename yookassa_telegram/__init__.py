@@ -30,6 +30,7 @@ from .webhook_handler import WebhookHandler
 from .yookassa_client import YooKassaClient
 from .storage import PaymentStorage, InMemoryPaymentStorage, JSONFilePaymentStorage
 from .database_storage import DatabasePaymentStorage
+from .payment_expiration import start_payment_expiration_checker
 
 __version__ = "1.0.3"
 __all__ = [
