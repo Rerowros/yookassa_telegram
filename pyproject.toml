@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "yookassa-telegram-integration"
-version = "1.0.0"
+name = "yookassa-telegram"
+version = "1.0.1"
 description = "By @rerowros"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -39,10 +39,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Rerowros/yookassa-telegram-integration"
-Documentation = "https://github.com/Rerowros/yookassa-telegram-integration#readme"
-Repository = "https://github.com/Rerowros/yookassa-telegram-integration"
-Issues = "https://github.com/Rerowros/yookassa-telegram-integration/issues"
+Homepage = "https://github.com/Rerowros/yookassa-telegram"
+Documentation = "https://github.com/Rerowros/yookassa-telegram#readme"
+Repository = "https://github.com/Rerowros/yookassa-telegram"
+Issues = "https://github.com/Rerowros/yookassa-telegram/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
