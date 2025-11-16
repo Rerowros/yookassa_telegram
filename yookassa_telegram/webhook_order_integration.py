@@ -3,14 +3,40 @@
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Protocol, Any
 from aiogram import Bot
 from aiogram.utils import markdown as md
 
-from payment.models import WebhookNotification
-from payment.enums import PaymentStatus
-from db.OrdersDatabase import OrdersDatabase
-from core.OrdersManager import OrdersManager
+from .models import WebhookNotification
+from .enums import PaymentStatus
+
+
+class OrderDatabaseProtocol(Protocol):
+    """Протокол для базы данных заказов"""
+    
+    def get_order_by_number(self, order_number: int) -> Any:
+        """Получить заказ по номеру"""
+        ...
+    
+    def convert_cart_to_order(self, order_id: str) -> None:
+        """Конвертировать корзину в заказ"""
+        ...
+    
+    def set_is_payment_done(self, order_id: str, is_done: bool) -> None:
+        """Установить статус оплаты заказа"""
+        ...
+
+
+class OrderManagerProtocol(Protocol):
+    """Протокол для менеджера заказов"""
+    
+    def deduct_stock_for_order(self, order_id: str) -> None:
+        """Списать товары со склада для заказа"""
+        ...
+    
+    def get_order_as_text(self, order_id: str) -> str:
+        """Получить текстовое представление заказа"""
+        ...
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +49,15 @@ class WebhookOrderIntegration:
     def __init__(
         self,
         bot: Bot,
-        orders_database: OrdersDatabase,
-        orders_manager: OrdersManager,
+        orders_database: OrderDatabaseProtocol,
+        orders_manager: OrderManagerProtocol,
         admin_user_ids: list[int]
     ):
         """
         Args:
             bot: Экземпляр Telegram бота
-            orders_database: База данных заказов
-            orders_manager: Менеджер заказов
+            orders_database: База данных заказов (должна реализовывать OrderDatabaseProtocol)
+            orders_manager: Менеджер заказов (должен реализовывать OrderManagerProtocol)
             admin_user_ids: Список ID администраторов для уведомлений
         """
         self.bot = bot

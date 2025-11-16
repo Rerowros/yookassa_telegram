@@ -27,12 +27,14 @@ from .payment_service import PaymentService
 from .refund_service import RefundService
 from .receipt_service import ReceiptService
 from .webhook_handler import WebhookHandler
+from .webhook_order_integration import WebhookOrderIntegration
+from .telegram_integration import TelegramPaymentIntegration
 from .yookassa_client import YooKassaClient
 from .storage import PaymentStorage, InMemoryPaymentStorage, JSONFilePaymentStorage
 from .database_storage import DatabasePaymentStorage
-from .payment_expiration import start_payment_expiration_checker
+from .payment_expiration import start_payment_expiration_checker, OrderDatabaseProtocol, OrderManagerProtocol
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 __all__ = [
     # Config
     "YooKassaConfig",
@@ -62,10 +64,15 @@ __all__ = [
     "RefundService",
     "ReceiptService",
     "WebhookHandler",
+    "WebhookOrderIntegration",
+    "TelegramPaymentIntegration",
     "YooKassaClient",
     # Storage
     "PaymentStorage",
     "InMemoryPaymentStorage",
     "JSONFilePaymentStorage",
     "DatabasePaymentStorage",
+    "start_payment_expiration_checker",
+    "OrderDatabaseProtocol",
+    "OrderManagerProtocol",
 ]

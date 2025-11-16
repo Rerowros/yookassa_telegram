@@ -5,15 +5,54 @@
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
+from typing import Any, Protocol
 from aiogram import Bot
 
-from db.OrdersDatabase import OrdersDatabase
-from core.OrdersManager import OrdersManager
-from payment.payment_service import PaymentService
-from payment.enums import PaymentStatus
+from .payment_service import PaymentService
+from .enums import PaymentStatus
 
 
 logger = logging.getLogger(__name__)
+
+
+class OrderDatabaseProtocol(Protocol):
+    """Протокол для базы данных заказов"""
+    
+    def get_unpaid_orders_needing_action(self) -> list[Any]:
+        """Получить неоплаченные заказы, требующие действия"""
+        ...
+    
+    def set_is_payment_done(self, order_id: str, is_done: bool) -> None:
+        """Установить статус оплаты заказа"""
+        ...
+    
+    def delete_order(self, order_id: str) -> None:
+        """Удалить заказ"""
+        ...
+    
+    def get_order_by_number(self, order_number: int) -> Any:
+        """Получить заказ по номеру"""
+        ...
+    
+    def convert_cart_to_order(self, order_id: str) -> None:
+        """Конвертировать корзину в заказ"""
+        ...
+
+
+class OrderManagerProtocol(Protocol):
+    """Протокол для менеджера заказов"""
+    
+    def return_stock_for_order(self, order_id: str) -> None:
+        """Вернуть товары на склад для заказа"""
+        ...
+    
+    def deduct_stock_for_order(self, order_id: str) -> None:
+        """Списать товары со склада для заказа"""
+        ...
+    
+    def get_order_as_text(self, order_id: str) -> str:
+        """Получить текстовое представление заказа"""
+        ...
 
 
 class PaymentExpirationChecker:
@@ -27,8 +66,8 @@ class PaymentExpirationChecker:
     def __init__(
         self,
         bot: Bot,
-        orders_database: OrdersDatabase,
-        orders_manager: OrdersManager,
+        orders_database: OrderDatabaseProtocol,
+        orders_manager: OrderManagerProtocol,
         payment_service: PaymentService,
         check_interval_seconds: int = 60,
         min_order_age_minutes: int = 5  # минимальный возраст заказа для проверки
@@ -36,8 +75,8 @@ class PaymentExpirationChecker:
         """
         Args:
             bot: Экземпляр Telegram бота
-            orders_database: База данных заказов
-            orders_manager: Менеджер заказов
+            orders_database: База данных заказов (должна реализовывать OrderDatabaseProtocol)
+            orders_manager: Менеджер заказов (должна реализовывать OrderManagerProtocol)
             payment_service: Сервис платежей
             check_interval_seconds: Интервал проверки в секундах
             min_order_age_minutes: Минимальный возраст заказа для проверки (избегаем проверки совсем свежих заказов)
@@ -212,8 +251,8 @@ class PaymentExpirationChecker:
 
 async def start_payment_expiration_checker(
     bot: Bot,
-    orders_database: OrdersDatabase,
-    orders_manager: OrdersManager,
+    orders_database: OrderDatabaseProtocol,
+    orders_manager: OrderManagerProtocol,
     payment_service: PaymentService,
     check_interval_seconds: int = 60,
     min_order_age_minutes: int = 10
@@ -223,8 +262,8 @@ async def start_payment_expiration_checker(
     
     Args:
         bot: Telegram бот
-        orders_database: База данных заказов
-        orders_manager: Менеджер заказов
+        orders_database: База данных заказов (должна реализовывать OrderDatabaseProtocol)
+        orders_manager: Менеджер заказов (должна реализовывать OrderManagerProtocol)
         payment_service: Сервис платежей
         check_interval_seconds: Интервал проверки в секундах
         min_order_age_minutes: Минимальный возраст заказа для проверки
